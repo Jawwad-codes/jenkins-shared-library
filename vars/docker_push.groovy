@@ -4,7 +4,7 @@ def call(Map config = [:]) {
     def dockerhubUsername = config.dockerhubUsername ?: error("Docker Hub username is required")
     def credentials = config.credentials ?: 'docker-hub-credentials'
     
-    echo "Pushing Docker image: ${imageName}:${imageTag}"
+    echo "Pushing Docker image: ${dockerhubUsername}/${imageName}:${imageTag}"
     
     withCredentials([usernamePassword(
         credentialsId: credentials,
@@ -13,8 +13,8 @@ def call(Map config = [:]) {
     )]) {
         sh """
             echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
-            docker push ${imageName}:${imageTag}
-            docker push ${imageName}:latest
+            docker push ${dockerhubUsername}/${imageName}:${imageTag}
+            docker push ${dockerhubUsername}/${imageName}:latest
         """
     }
 }
