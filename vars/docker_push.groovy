@@ -1,20 +1,31 @@
 def call(Map config = [:]) {
     def imageName = config.imageName ?: error("Image name is required")
     def imageTag = config.imageTag ?: 'latest'
-    def dockerhubUsername = config.dockerhubUsername ?: error("Docker Hub username is required")
+    def dockerhubUsername = config.dockerhubUsername ?: error("dockerhubUsername is required")
     def credentials = config.credentials ?: 'docker-hub-credentials'
-    
-    echo "Pushing Docker image: ${dockerhubUsername}/${imageName}:${imageTag}"
-    
+
+    def fullImageName = "${dockerhubUsername}/${imageName}"
+
+    echo "Pushing Docker image: ${fullImageName}:${imageTag}"
+
     withCredentials([usernamePassword(
         credentialsId: credentials,
         usernameVariable: 'DOCKER_USERNAME',
         passwordVariable: 'DOCKER_PASSWORD'
     )]) {
-        sh """
-            echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
-            docker push ${dockerhubUsername}/${imageName}:${imageTag}
-            docker push ${dockerhubUsername}/${imageName}:latest
-        """
+        try {
+            sh """
+                echo "\$DOCKER_PASSWORD" | docker login -u "\$DOCKER_USERNAME" --password-stdin
+                docker push ${fullImageName}:${imageTag}
+            """
+            if (imageTag != 'latest') {
+                sh """
+                    docker tag ${fullImageName}:${imageTag} ${fullImageName}:latest
+                    docker push ${fullImageName}:latest
+                """
+            }
+        } finally {
+            sh 'docker logout'
+        }
     }
 }
